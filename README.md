@@ -39,6 +39,7 @@ Examples:
 ## Current skills
 
 - [`skills/17track-package-tracking/`](skills/17track-package-tracking/) - Experimental 17TRACK package tracking skill for structured shipment lookup before carrier-page scraping.
+- [`skills/firecrawl-carrier-tracking/`](skills/firecrawl-carrier-tracking/) - Firecrawl rendered carrier-page fallback for ETA, status, location, and delivery-proof extraction.
 
 ## Current extensions
 

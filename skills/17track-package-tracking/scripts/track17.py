@@ -21,7 +21,7 @@ def _candidate_servers() -> list[pathlib.Path]:
         candidates.append(pathlib.Path(configured).expanduser())
 
     script_path = pathlib.Path(__file__).resolve()
-    repo_root = script_path.parents[2]
+    repo_root = script_path.parents[3]
     candidates.append(
         repo_root
         / "extensions"

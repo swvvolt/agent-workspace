@@ -90,7 +90,7 @@ The wrapper reads `API_TOKEN_17TRACK` from the environment and calls the MCP ser
    - ETA -> tracker expected date
    - Latest event/location -> tracking event or note
 4. If 17TRACK returns an authorization error, do not infer status. Report that 17TRACK needs API permission enabled or an alternate endpoint workflow.
-5. Use carrier-page scraping only as a fallback after Odoo and 17TRACK are unavailable or insufficient.
+5. Use [`firecrawl-carrier-tracking`](../firecrawl-carrier-tracking/) or another carrier-page scraping method only as a fallback after Odoo and 17TRACK are unavailable or insufficient.
 
 ## Rate limits and duplicate avoidance
 
