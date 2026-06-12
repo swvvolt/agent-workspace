@@ -7,6 +7,10 @@ description: "Uses Firecrawl MCP for rendered scraping and extraction from carri
 
 Use this skill to extract rendered carrier tracking information through Firecrawl MCP.
 
+## Status
+
+Registered as a shared fallback skill on 2026-06-12 from Diana's local carrier-tracking workflow. Diana validated the Firecrawl approach against a FedEx tracking page for shipment ETA/status extraction; use it after structured sources such as Odoo and authorized 17TRACK lookups are unavailable or insufficient.
+
 ## Requirements
 
 - Firecrawl API key must be available as `FIRECRAWL_API_KEY`.
