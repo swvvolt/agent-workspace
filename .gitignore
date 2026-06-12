@@ -6,6 +6,7 @@
 
 # Generated caches
 node_modules/
+.letta/
 .letta-extension-*.mjs
 .letta-mod-*.mjs
 extension-cache/
