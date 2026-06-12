@@ -1,0 +1,14 @@
+{
+  "name": "@verivolt/17track-mcp-wrapper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local install wrapper for mcp-server-17track used by Verivolt agent package tracking workflows.",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "scripts": {
+    "audit": "npm audit --omit=dev"
+  },
+  "dependencies": {
+    "mcp-server-17track": "1.1.3"
+  }
+}

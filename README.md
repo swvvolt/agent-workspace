@@ -36,9 +36,14 @@ Examples:
 - Local plugins
 - Extension documentation and examples
 
+## Current skills
+
+- [`skills/17track-package-tracking/`](skills/17track-package-tracking/) - Experimental 17TRACK package tracking skill for structured shipment lookup before carrier-page scraping.
+
 ## Current extensions
 
 - [`extensions/apollo-api/`](extensions/apollo-api/) - Apollo.io API extension for Letta Code tools and people/user enrichment workflows.
+- [`extensions/17track-mcp/`](extensions/17track-mcp/) - Experimental local MCP wrapper for `mcp-server-17track@1.1.3`; blocked for broad deployment until 17TRACK real-time API permission and dependency-risk review are resolved.
 
 ## Security notes
 
