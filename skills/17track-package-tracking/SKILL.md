@@ -1,48 +1,33 @@
 ---
 name: 17track-package-tracking
-description: "Use the 17TRACK MCP server/API for package tracking before scraping carrier pages. Supports FedEx, DHL, UPS, USPS, and other carriers when API_TOKEN_17TRACK is authorized."
+description: "Use the 17TRACK v2.4 API for package tracking before scraping carrier pages. Uses the working register + gettrackinfo workflow and supports FedEx, UPS, and other carrier codes."
 ---
 
 # 17TRACK Package Tracking
 
-Use this skill to query package tracking through the `mcp-server-17track` MCP server.
-
-## Status
-
-Experimental candidate as of 2026-06-12. Do not treat this as production-approved until both gates are cleared:
-
-1. 17TRACK account/API permission is enabled for the endpoint used by the package, or an alternate 17TRACK register/query workflow is implemented.
-2. The dependency risk from `@modelcontextprotocol/sdk <=1.25.1` is accepted by security/owner review or resolved by an upstream package update.
+Use this skill to query package tracking through the 17TRACK v2.4 API before scraping carrier pages.
 
 ## Purpose
 
-This is the preferred structured tracking approach before carrier-page scraping when Odoo does not contain delivery confirmation. 17TRACK is an API aggregator and is less fragile than scraping FedEx, DHL, UPS, or USPS public tracking pages.
+This is the preferred tracking approach when Odoo does not contain delivery confirmation. 17TRACK is a structured tracking API aggregator and is less fragile than FedEx/DHL/UPS public page scraping.
 
-## Required extension
-
-This skill expects the companion extension at:
-
-```text
-extensions/17track-mcp/
-```
-
-Install from the shared workspace repository root:
-
-```powershell
-npm install --prefix extensions/17track-mcp
-```
-
-Required secret/env var:
+## Required secret
 
 ```text
 API_TOKEN_17TRACK
 ```
 
-Never print the token, commit it, or place it in skill files.
+Never print the token.
 
-## Current authorization status
+## Current implementation
 
-Diana tested `mcp-server-17track@1.1.3` on 2026-06-12. The MCP server starts and lists tools successfully. A test call for FedEx tracking number `872922612240` returned:
+The installed npm MCP package `mcp-server-17track@1.1.3` calls:
+
+```text
+POST https://api.17track.net/track/v2.4/getRealTimeTrackInfo
+```
+
+Verivolt's current token is not authorized for that separately gated endpoint and returns:
 
 ```json
 {
@@ -51,56 +36,86 @@ Diana tested `mcp-server-17track@1.1.3` on 2026-06-12. The MCP server starts and
 }
 ```
 
-This means the token reached 17TRACK, but the account was not authorized for the package's `getRealTimeTrackInfo` real-time endpoint. The account likely needs real-time query API permission enabled, or the workflow needs to use another supported 17TRACK endpoint pattern such as register plus query/webhook.
+Therefore the operational wrapper uses the standard working workflow instead:
 
-## Tools exposed
+1. `POST /track/v2.4/register`
+2. `POST /track/v2.4/gettrackinfo`
 
-The MCP exposes one tool:
-
-```text
-track_package
-```
-
-Input schema:
-
-```json
-{
-  "number": "tracking_number"
-}
-```
+This workflow has been tested successfully for FedEx tracking `872922612240` with carrier code `100003`.
 
 ## Quick usage
 
-Use the Windows-safe wrapper from the shared workspace repository root:
+From the shared workspace repository root:
 
 ```powershell
-python skills/17track-package-tracking/scripts/track17.py 872922612240
+python skills/17track-package-tracking/scripts/track17.py 872922612240 --carrier fedex
 ```
 
-The wrapper reads `API_TOKEN_17TRACK` from the environment and calls the MCP server over stdio. It does not print the token.
+Raw API responses:
+
+```powershell
+python skills/17track-package-tracking/scripts/track17.py 872922612240 --carrier fedex --raw
+```
+
+Skip registration if the tracking number was already registered:
+
+```powershell
+python skills/17track-package-tracking/scripts/track17.py 872922612240 --carrier fedex --no-register
+```
+
+## Carrier codes
+
+Known useful aliases in the wrapper:
+
+| Alias | 17TRACK carrier code | Notes |
+|---|---:|---|
+| `fedex`, `fedex-fdx`, `fdx` | `100003` | Worked for FedEx `872922612240` |
+| `ups` | `100002` | 17TRACK identifies this as UPS |
+
+If auto-detection fails with `Carrier cannot be detected`, provide the carrier code explicitly.
+
+## Output fields
+
+The wrapper returns normalized JSON including:
+
+- `status`: `delivered`, `in_transit`, `exception`, `not_found`, or `unknown`
+- `status_raw` and `sub_status`
+- `latest_event.time_utc`
+- `latest_event.description`
+- `latest_event.location`
+- `eta`, `eta_to`, and `eta_source`
+- `delivered_at` when delivered
+- origin and destination address fragments
+- raw register/query responses for auditability
+
+## Tested result
+
+FedEx tracking `872922612240` with `--carrier fedex --no-register` returned:
+
+- Status: `InTransit`
+- Normalized status: `in_transit`
+- Latest event: `On the way`
+- Latest event location: `ROISSY CHARLES DE GAULLE CEDEX, 95, FR`
+- Latest event UTC: `2026-06-12T20:46:00Z`
+- Origin: San Francisco, CA, US
+- Destination: Noventa Padovana, PD, Italy
+- ETA: `2026-06-16T20:00:00-04:00`
+- ETA source: `Official`
 
 ## Workflow
 
-1. Ask Oddete/Odoo for the sales order, picking, carrier, tracking number, customer, and Odoo delivery fields.
+1. Ask Oddete/Odoo for SO, picking, carrier, tracking number, customer, and Odoo delivery fields.
 2. Query 17TRACK using this skill.
-3. If 17TRACK returns authorized structured tracking, normalize to shipment tracker fields:
-   - Delivered -> `movement_status=delivered`
-   - In transit or out for delivery -> `movement_status=in_transit`
-   - Exception -> `movement_status=exception`
+3. Normalize to shipment tracker fields:
+   - `delivered` -> `movement_status=delivered`
+   - `in_transit` -> `movement_status=in_transit`
+   - `exception` -> `movement_status=exception`
    - ETA -> tracker expected date
-   - Latest event/location -> tracking event or note
-4. If 17TRACK returns an authorization error, do not infer status. Report that 17TRACK needs API permission enabled or an alternate endpoint workflow.
-5. Use carrier-page scraping only as a fallback after Odoo and 17TRACK are unavailable or insufficient.
+   - latest event/location -> tracking event or shipment note
+4. Use Firecrawl/carrier-page scraping only as fallback after Odoo and 17TRACK are unavailable or insufficient.
 
-## Rate limits and duplicate avoidance
+## Limits and cautions
 
-17TRACK public documentation has referenced a 3 requests/second API limit and a 100 free tracking numbers/month free tier. Bulk checks should throttle and avoid duplicate queries.
-
-## Security notes
-
-`npm audit --omit=dev` on 2026-06-12 reported two high vulnerabilities through `@modelcontextprotocol/sdk <=1.25.1`, pulled by `mcp-server-17track@1.1.3`:
-
-- ReDoS vulnerability
-- DNS rebinding protection not enabled by default
-
-No fixed dependency path was available through this package version on 2026-06-12. Because this server is used over stdio by local trusted callers, the DNS rebinding issue is less directly exposed than it would be for an HTTP server, but the dependency risk still needs explicit owner/security acceptance before broad deployment.
+- 17TRACK documents a rate limit of 3 requests/second. Throttle bulk checks.
+- The free plan may limit tracking numbers per month.
+- `mcp-server-17track@1.1.3` still exists locally, but the operational wrapper bypasses it until real-time API permission is enabled or the MCP package is patched upstream.
