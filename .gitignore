@@ -1,0 +1,19 @@
+﻿# Local secrets/config
+*.config.json
+*.local.json
+.env
+.env.*
+
+# Generated caches
+node_modules/
+.letta-extension-*.mjs
+.letta-mod-*.mjs
+extension-cache/
+mod-cache/
+diagnostics/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
